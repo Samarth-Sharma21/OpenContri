@@ -46,38 +46,114 @@ export default function App() {
     initLenis()
   }, [])
 
+  const buildSearchQuery = (searchTerm, filters) => {
+    let query = []
+    
+    if (searchTerm) {
+      // Check if it's an author search (detect common patterns)
+      const authorPattern = /^@?([a-zA-Z0-9-]+)$/.exec(searchTerm.trim())
+      const userPattern = /^user:([a-zA-Z0-9-]+)$/i.exec(searchTerm.trim())
+      const orgPattern = /^org:([a-zA-Z0-9-]+)$/i.exec(searchTerm.trim())
+      
+      if (authorPattern && !searchTerm.includes(' ')) {
+        // Simple username search - search both in name and owner
+        const username = authorPattern[1]
+        query.push(`(${searchTerm} OR user:${username} OR org:${username})`)
+      } else if (userPattern) {
+        query.push(`user:${userPattern[1]}`)
+      } else if (orgPattern) {
+        query.push(`org:${orgPattern[1]}`)
+      } else {
+        // Regular search - look in name, description, and readme
+        query.push(`${searchTerm} in:name,description,readme`)
+      }
+    } else {
+      // Default search for popular repos
+      query.push('stars:>10')
+    }
+    
+    // Add language filter
+    if (filters.language) {
+      query.push(`language:${filters.language}`)
+    }
+    
+    // Add stars filter (more generous range)
+    const minStars = filters.minStars || 0
+    const maxStars = filters.maxStars === 100000 ? '' : filters.maxStars
+    if (minStars > 0 || maxStars) {
+      query.push(`stars:${minStars}..${maxStars || ''}`)
+    }
+    
+    // Add topics filter
+    if (filters.topics && filters.topics.length > 0) {
+      filters.topics.forEach(topic => {
+        query.push(`topic:${topic}`)
+      })
+    }
+    
+    return query.join(' ')
+  }
+
   const fetchRepos = async (pageNum = 1, reset = false) => {
     if (loading) return
     
+    // GitHub Search API has a 1000 results limit (100 pages), but let's be more generous
+    if (pageNum > 100) {
+      setHasMore(false)
+      return
+    }
+    
     setLoading(true)
     try {
-      const searchQuery = searchTerm || 'stars:>100'
-      const languageQuery = filters.language ? ` language:${filters.language}` : ''
-      const starsQuery = ` stars:${filters.minStars}..${filters.maxStars}`
-      const topicsQuery = filters.topics.length > 0 ? ` topic:${filters.topics.join(' topic:')}` : ''
+      const query = buildSearchQuery(searchTerm, filters)
       
-      const query = `${searchQuery}${languageQuery}${starsQuery}${topicsQuery}`
+      // Use 20 items per page for better infinite scroll experience
+      const response = await fetch(
+        `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&page=${pageNum}&per_page=20`,
+        {
+          headers: {
+            'Accept': 'application/vnd.github.v3+json',
+            // Add User-Agent to avoid rate limiting
+            'User-Agent': 'OpenContri-App'
+          }
+        }
+      )
       
-      const response = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&page=${pageNum}&per_page=12`)
-      
-      if (!response.ok) throw new Error('Failed to fetch repositories')
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('GitHub API rate limit exceeded. Please try again later.')
+        }
+        throw new Error('Failed to fetch repositories')
+      }
       
       const data = await response.json()
       
       if (reset) {
-        setRepos(data.items)
+        setRepos(data.items || [])
         setPage(1)
       } else {
-        setRepos(prev => [...prev, ...data.items])
+        setRepos(prev => [...prev, ...(data.items || [])])
       }
       
-      // Check if there are more pages
-      setHasMore(data.items.length === 12)
+      // Continue loading if we got a full page and haven't hit the total count limit
+      const totalCount = data.total_count || 0
+      const currentTotal = reset ? (data.items?.length || 0) : repos.length + (data.items?.length || 0)
+      
+      // GitHub API limits to 1000 results, but we can check if there are more pages
+      const hasMoreItems = (data.items?.length || 0) === 20 // Full page means more likely to have more
+      const notAtGitHubLimit = currentTotal < Math.min(totalCount, 1000)
+      const notAtPageLimit = pageNum < 50 // Reasonable limit to avoid excessive requests
+      
+      setHasMore(hasMoreItems && notAtGitHubLimit && notAtPageLimit)
       
       if (!reset) setPage(prev => prev + 1)
     } catch (error) {
       console.error('Error fetching repos:', error)
-      toast.error('Failed to fetch repositories')
+      if (error.message.includes('rate limit')) {
+        toast.error('Rate limit exceeded. Please wait a moment and try again.')
+      } else {
+        toast.error('Failed to fetch repositories')
+      }
       setHasMore(false)
     } finally {
       setLoading(false)
