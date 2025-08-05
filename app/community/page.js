@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Search, Users, Filter, X } from 'lucide-react'
+import { Loader2, Search, Users, Filter, X, Code2, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function CommunityPage() {
@@ -52,7 +52,7 @@ export default function CommunityPage() {
       setAvailableTags(tags)
     } catch (error) {
       console.error('Error fetching submissions:', error)
-      toast.error('Failed to load community submissions')
+      toast.error('Failed to load community contributions')
     } finally {
       setLoading(false)
     }
@@ -98,28 +98,31 @@ export default function CommunityPage() {
       {/* Hero Section */}
       <section className="pt-24 pb-12 px-4 bg-gradient-to-br from-secondary/5 to-primary/5">
         <div className="container max-w-4xl mx-auto text-center">
-          <div className="flex items-center justify-center mb-6">
-            <Users className="h-12 w-12 mr-3 text-primary" />
+          <div className="flex items-center justify-center mb-6 fade-in-up">
+            <div className="relative">
+              <Users className="h-12 w-12 mr-3 text-primary" />
+              <Sparkles className="absolute -top-1 -right-1 h-4 w-4 text-secondary" />
+            </div>
             <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Community
             </h1>
           </div>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Explore repositories shared by our amazing community. Discover, discuss, and connect.
+          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto fade-in-up stagger-1">
+            Explore amazing open source projects contributed by our community. Discover, discuss, and collaborate.
           </p>
         </div>
       </section>
 
       <div className="container mx-auto px-4 py-8">
         {/* Filters */}
-        <div className="bg-card rounded-lg border p-6 mb-8">
+        <div className="bg-card rounded-lg border p-6 mb-8 fade-in-up">
           <div className="grid gap-4 md:grid-cols-4">
             {/* Search */}
             <div className="md:col-span-2">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search repositories..."
+                  placeholder="Search contributed projects..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9"
@@ -159,7 +162,7 @@ export default function CommunityPage() {
                   <Badge
                     key={tag}
                     variant={selectedTags.includes(tag) ? "default" : "outline"}
-                    className="cursor-pointer hover:bg-primary hover:text-primary-foreground"
+                    className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
                     onClick={() => toggleTag(tag)}
                   >
                     {tag}
@@ -195,7 +198,7 @@ export default function CommunityPage() {
         {/* Results Summary */}
         <div className="mb-6">
           <p className="text-sm text-muted-foreground">
-            Showing {filteredSubmissions.length} of {submissions.length} repositories
+            Showing {filteredSubmissions.length} of {submissions.length} community contributions
           </p>
         </div>
 
@@ -203,20 +206,25 @@ export default function CommunityPage() {
         {loading && (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin mr-2" />
-            <span>Loading community submissions...</span>
+            <span>Loading community contributions...</span>
           </div>
         )}
 
         {/* Repository Grid */}
         {!loading && filteredSubmissions.length > 0 && (
           <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-2">
-            {filteredSubmissions.map((submission) => (
-              <CommunityRepoCard 
-                key={submission.id} 
-                submission={submission} 
-                currentUser={user}
-                onUpdate={fetchSubmissions}
-              />
+            {filteredSubmissions.map((submission, index) => (
+              <div 
+                key={submission.id}
+                className="fade-in-up"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <CommunityRepoCard 
+                  submission={submission} 
+                  currentUser={user}
+                  onUpdate={fetchSubmissions}
+                />
+              </div>
             ))}
           </div>
         )}
@@ -224,8 +232,8 @@ export default function CommunityPage() {
         {/* Empty State */}
         {!loading && filteredSubmissions.length === 0 && submissions.length > 0 && (
           <div className="text-center py-12">
-            <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No repositories found</h3>
+            <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No projects found</h3>
             <p className="text-muted-foreground mb-4">
               Try adjusting your search or filters
             </p>
@@ -238,13 +246,19 @@ export default function CommunityPage() {
         {/* No Submissions Yet */}
         {!loading && submissions.length === 0 && (
           <div className="text-center py-12">
-            <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No submissions yet</h3>
-            <p className="text-muted-foreground mb-4">
-              Be the first to share an amazing repository with the community!
+            <div className="relative mb-6">
+              <Code2 className="h-16 w-16 mx-auto text-muted-foreground" />
+              <Sparkles className="absolute top-0 right-1/2 translate-x-8 h-4 w-4 text-secondary" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">No contributions yet</h3>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+              Be the first to contribute an amazing open source project to the OpenContri community!
             </p>
-            <Button asChild>
-              <a href="/submit">Submit Repository</a>
+            <Button asChild size="lg">
+              <a href="/submit" className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                Contribute Project
+              </a>
             </Button>
           </div>
         )}

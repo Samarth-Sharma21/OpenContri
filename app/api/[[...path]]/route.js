@@ -25,7 +25,11 @@ async function handleRoute(request, { params }) {
   try {
     // Root endpoint
     if ((route === '/' || route === '/root') && method === 'GET') {
-      return handleCORS(NextResponse.json({ message: "RepoHub API is running" }))
+      return handleCORS(NextResponse.json({ 
+        message: "OpenContri API is running",
+        app: "OpenContri - Discover Amazing Open Source Projects",
+        version: "1.0.0"
+      }))
     }
 
     // Submissions endpoints

@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Plus, X, Github, GitBranch } from 'lucide-react'
+import { Loader2, Plus, X, Github, GitBranch, Sparkles, Code2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function SubmitPage() {
@@ -33,12 +33,23 @@ export default function SubmitPage() {
       <div className="min-h-screen bg-background">
         <Navigation />
         <div className="container mx-auto px-4 pt-24">
-          <Card className="max-w-md mx-auto">
+          <Card className="max-w-md mx-auto fade-in-up">
             <CardContent className="text-center py-8">
+              <div className="mb-4">
+                <Code2 className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+              </div>
               <h2 className="text-2xl font-bold mb-4">Sign In Required</h2>
-              <p className="text-muted-foreground">
-                Please sign in to submit repositories to the community.
+              <p className="text-muted-foreground mb-6">
+                Please sign in to contribute amazing repositories to the OpenContri community.
               </p>
+              <div className="space-y-2">
+                <Button asChild className="w-full">
+                  <a href="/sign-in">Sign In</a>
+                </Button>
+                <Button asChild variant="outline" className="w-full">
+                  <a href="/sign-up">Create Account</a>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -64,6 +75,7 @@ export default function SubmitPage() {
             language: data.language || '',
             platform: 'github'
           }))
+          toast.success('Repository info loaded!')
         }
       } else if (bitbucketMatch) {
         setFormData(prev => ({
@@ -120,7 +132,7 @@ export default function SubmitPage() {
         throw new Error('Failed to submit repository')
       }
 
-      toast.success('Repository submitted successfully!')
+      toast.success('🎉 Repository submitted successfully!')
       router.push('/community')
     } catch (error) {
       console.error('Error submitting repository:', error)
@@ -136,17 +148,23 @@ export default function SubmitPage() {
       
       <div className="container mx-auto px-4 pt-24 pb-12">
         <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-2">Submit a Repository</h1>
+          <div className="text-center mb-8 fade-in-up">
+            <div className="flex items-center justify-center mb-4">
+              <div className="relative">
+                <Plus className="h-8 w-8 text-primary" />
+                <Sparkles className="absolute -top-1 -right-1 h-3 w-3 text-secondary" />
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold mb-2">Contribute to OpenContri</h1>
             <p className="text-muted-foreground">
-              Share an amazing repository with the community
+              Share an amazing open source project with our community
             </p>
           </div>
 
-          <Card>
+          <Card className="fade-in-up stagger-1">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Plus className="h-5 w-5" />
+                <Code2 className="h-5 w-5" />
                 Repository Details
               </CardTitle>
             </CardHeader>
@@ -159,10 +177,11 @@ export default function SubmitPage() {
                   <Input
                     id="url"
                     type="url"
-                    placeholder="https://github.com/username/repository"
+                    placeholder="https://github.com/username/amazing-project"
                     value={formData.url}
                     onChange={(e) => handleUrlChange(e.target.value)}
                     required
+                    className="font-mono text-sm"
                   />
                   <p className="text-xs text-muted-foreground">
                     Supports GitHub and Bitbucket URLs
@@ -198,10 +217,10 @@ export default function SubmitPage() {
 
                 {/* Title */}
                 <div className="space-y-2">
-                  <Label htmlFor="title">Title</Label>
+                  <Label htmlFor="title">Project Title</Label>
                   <Input
                     id="title"
-                    placeholder="Repository name"
+                    placeholder="Amazing Open Source Project"
                     value={formData.title}
                     onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                   />
@@ -212,10 +231,11 @@ export default function SubmitPage() {
                   <Label htmlFor="description">Description</Label>
                   <Textarea
                     id="description"
-                    placeholder="What makes this repository special?"
+                    placeholder="Tell the community what makes this project special and worth contributing to..."
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     rows={4}
+                    className="resize-none"
                   />
                 </div>
 
@@ -224,7 +244,7 @@ export default function SubmitPage() {
                   <Label htmlFor="language">Primary Language</Label>
                   <Input
                     id="language"
-                    placeholder="e.g., JavaScript, Python, Go"
+                    placeholder="e.g., JavaScript, Python, Go, Rust"
                     value={formData.language}
                     onChange={(e) => setFormData(prev => ({ ...prev, language: e.target.value }))}
                   />
@@ -238,7 +258,7 @@ export default function SubmitPage() {
                   {formData.tags.length > 0 && (
                     <div className="flex flex-wrap gap-2 mb-2">
                       {formData.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary">
+                        <Badge key={tag} variant="secondary" className="flex items-center gap-1">
                           {tag}
                           <Button
                             type="button"
@@ -257,7 +277,7 @@ export default function SubmitPage() {
                   {/* Add Tag Input */}
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Add a tag..."
+                      placeholder="Add a tag (e.g., frontend, ai, tool, game)..."
                       value={tempTag}
                       onChange={(e) => setTempTag(e.target.value)}
                       onKeyPress={(e) => {
@@ -277,25 +297,25 @@ export default function SubmitPage() {
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Add tags like: frontend, api, tool, game, etc.
+                    Tags help others discover your project. Add topics like: web, api, cli, ai, game, etc.
                   </p>
                 </div>
 
                 {/* Submit Button */}
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="w-full h-12 text-base"
                   disabled={loading || !formData.url}
                 >
                   {loading ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Submitting...
+                      Contributing to OpenContri...
                     </>
                   ) : (
                     <>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Submit Repository
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Contribute to OpenContri
                     </>
                   )}
                 </Button>
