@@ -1,19 +1,6 @@
-import { MongoClient } from 'mongodb'
-import { v4 as uuidv4 } from 'uuid'
 import { NextResponse } from 'next/server'
-
-// MongoDB connection
-let client
-let db
-
-async function connectToMongo() {
-  if (!client) {
-    client = new MongoClient(process.env.MONGO_URL)
-    await client.connect()
-    db = client.db(process.env.DB_NAME)
-  }
-  return db
-}
+import { supabase } from '@/lib/supabase'
+import { auth } from '@clerk/nextjs/server'
 
 // Helper function to handle CORS
 function handleCORS(response) {
@@ -36,49 +23,153 @@ async function handleRoute(request, { params }) {
   const method = request.method
 
   try {
-    const db = await connectToMongo()
-
-    // Root endpoint - GET /api/root (since /api/ is not accessible with catch-all)
-    if (route === '/root' && method === 'GET') {
-      return handleCORS(NextResponse.json({ message: "Hello World" }))
-    }
-    // Root endpoint - GET /api/root (since /api/ is not accessible with catch-all)
-    if (route === '/' && method === 'GET') {
-      return handleCORS(NextResponse.json({ message: "Hello World" }))
+    // Root endpoint
+    if ((route === '/' || route === '/root') && method === 'GET') {
+      return handleCORS(NextResponse.json({ message: "RepoHub API is running" }))
     }
 
-    // Status endpoints - POST /api/status
-    if (route === '/status' && method === 'POST') {
+    // Submissions endpoints
+    if (route === '/submissions' && method === 'GET') {
+      const { data, error } = await supabase
+        .from('submissions')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      return handleCORS(NextResponse.json(data))
+    }
+
+    if (route === '/submissions' && method === 'POST') {
+      const { userId } = auth()
+      if (!userId) {
+        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      }
+
       const body = await request.json()
-      
-      if (!body.client_name) {
-        return handleCORS(NextResponse.json(
-          { error: "client_name is required" }, 
-          { status: 400 }
-        ))
-      }
+      const { url, title, description, tags, platform, username, language, stars } = body
 
-      const statusObj = {
-        id: uuidv4(),
-        client_name: body.client_name,
-        timestamp: new Date()
-      }
+      const { data, error } = await supabase
+        .from('submissions')
+        .insert([{
+          url,
+          title,
+          description,
+          tags: tags || [],
+          platform: platform || 'github',
+          user_id: userId,
+          username,
+          language,
+          stars: stars || 0
+        }])
+        .select()
 
-      await db.collection('status_checks').insertOne(statusObj)
-      return handleCORS(NextResponse.json(statusObj))
+      if (error) throw error
+      return handleCORS(NextResponse.json(data[0]))
     }
 
-    // Status endpoints - GET /api/status
-    if (route === '/status' && method === 'GET') {
-      const statusChecks = await db.collection('status_checks')
-        .find({})
-        .limit(1000)
-        .toArray()
+    // Comments endpoints
+    if (route === '/comments' && method === 'GET') {
+      const { searchParams } = new URL(request.url)
+      const repoId = searchParams.get('repoId')
+      const repoUrl = searchParams.get('repoUrl')
 
-      // Remove MongoDB's _id field from response
-      const cleanedStatusChecks = statusChecks.map(({ _id, ...rest }) => rest)
-      
-      return handleCORS(NextResponse.json(cleanedStatusChecks))
+      let query = supabase.from('comments').select('*').order('created_at', { ascending: true })
+
+      if (repoId) {
+        query = query.eq('repo_id', repoId)
+      } else if (repoUrl) {
+        query = query.eq('repo_url', repoUrl)
+      } else {
+        return handleCORS(NextResponse.json({ error: 'repoId or repoUrl is required' }, { status: 400 }))
+      }
+
+      const { data, error } = await query
+
+      if (error) throw error
+      return handleCORS(NextResponse.json(data))
+    }
+
+    if (route === '/comments' && method === 'POST') {
+      const { userId } = auth()
+      if (!userId) {
+        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      }
+
+      const body = await request.json()
+      const { repoId, repoUrl, text, username } = body
+
+      if (!text || !username) {
+        return handleCORS(NextResponse.json({ error: 'text and username are required' }, { status: 400 }))
+      }
+
+      if (!repoId && !repoUrl) {
+        return handleCORS(NextResponse.json({ error: 'repoId or repoUrl is required' }, { status: 400 }))
+      }
+
+      const commentData = {
+        text,
+        user_id: userId,
+        username
+      }
+
+      if (repoId) {
+        commentData.repo_id = repoId
+      } else {
+        commentData.repo_url = repoUrl
+      }
+
+      const { data, error } = await supabase
+        .from('comments')
+        .insert([commentData])
+        .select()
+
+      if (error) throw error
+      return handleCORS(NextResponse.json(data[0]))
+    }
+
+    // Update comment
+    if (route.startsWith('/comments/') && method === 'PUT') {
+      const { userId } = auth()
+      if (!userId) {
+        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      }
+
+      const commentId = route.split('/')[2]
+      const body = await request.json()
+      const { text } = body
+
+      const { data, error } = await supabase
+        .from('comments')
+        .update({ text })
+        .eq('id', commentId)
+        .eq('user_id', userId)
+        .select()
+
+      if (error) throw error
+      if (data.length === 0) {
+        return handleCORS(NextResponse.json({ error: 'Comment not found or unauthorized' }, { status: 404 }))
+      }
+
+      return handleCORS(NextResponse.json(data[0]))
+    }
+
+    // Delete comment
+    if (route.startsWith('/comments/') && method === 'DELETE') {
+      const { userId } = auth()
+      if (!userId) {
+        return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+      }
+
+      const commentId = route.split('/')[2]
+
+      const { error } = await supabase
+        .from('comments')
+        .delete()
+        .eq('id', commentId)
+        .eq('user_id', userId)
+
+      if (error) throw error
+      return handleCORS(NextResponse.json({ success: true }))
     }
 
     // Route not found
@@ -90,7 +181,7 @@ async function handleRoute(request, { params }) {
   } catch (error) {
     console.error('API Error:', error)
     return handleCORS(NextResponse.json(
-      { error: "Internal server error" }, 
+      { error: error.message || "Internal server error" }, 
       { status: 500 }
     ))
   }
