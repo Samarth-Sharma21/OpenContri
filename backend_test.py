@@ -305,7 +305,7 @@ class RepoHubBackendTester:
     def test_cors_headers(self):
         """Test CORS headers are properly set"""
         try:
-            response = self.session.options(f"{self.api_url}/")
+            response = self.session.options(f"{self.api_url}")
             
             if response.status_code == 200:
                 headers = response.headers
