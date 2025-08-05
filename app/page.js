@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { supabase } from '@/lib/supabase'
 import Navigation from '@/components/Navigation'
@@ -8,13 +8,14 @@ import RepoCard from '@/components/RepoCard'
 import FilterSidebar from '@/components/FilterSidebar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader2, Search, Github, Filter } from 'lucide-react'
+import { Loader2, Search, Code2, Filter, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function App() {
   const { user } = useUser()
   const [repos, setRepos] = useState([])
   const [loading, setLoading] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filters, setFilters] = useState({
     language: '',
@@ -23,7 +24,9 @@ export default function App() {
     topics: []
   })
   const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
   const [showFilters, setShowFilters] = useState(false)
+  const observer = useRef()
 
   // Initialize Lenis for smooth scrolling
   useEffect(() => {
@@ -43,7 +46,9 @@ export default function App() {
     initLenis()
   }, [])
 
-  const fetchRepos = async (reset = false) => {
+  const fetchRepos = async (pageNum = 1, reset = false) => {
+    if (loading) return
+    
     setLoading(true)
     try {
       const searchQuery = searchTerm || 'stars:>100'
@@ -53,7 +58,7 @@ export default function App() {
       
       const query = `${searchQuery}${languageQuery}${starsQuery}${topicsQuery}`
       
-      const response = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&page=${reset ? 1 : page}&per_page=12`)
+      const response = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&page=${pageNum}&per_page=12`)
       
       if (!response.ok) throw new Error('Failed to fetch repositories')
       
@@ -66,27 +71,49 @@ export default function App() {
         setRepos(prev => [...prev, ...data.items])
       }
       
+      // Check if there are more pages
+      setHasMore(data.items.length === 12)
+      
       if (!reset) setPage(prev => prev + 1)
     } catch (error) {
       console.error('Error fetching repos:', error)
       toast.error('Failed to fetch repositories')
+      setHasMore(false)
     } finally {
       setLoading(false)
+      if (initialLoading) setInitialLoading(false)
     }
   }
 
+  // Infinite scroll ref callback
+  const lastRepoElementRef = useCallback(node => {
+    if (loading) return
+    if (observer.current) observer.current.disconnect()
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        fetchRepos(page + 1, false)
+      }
+    }, {
+      rootMargin: '100px' // Load new content when user is 100px from the bottom
+    })
+    if (node) observer.current.observe(node)
+  }, [loading, hasMore, page])
+
   useEffect(() => {
-    fetchRepos(true)
+    fetchRepos(1, true)
   }, [filters])
 
   const handleSearch = (e) => {
     e.preventDefault()
-    fetchRepos(true)
+    setPage(1)
+    setHasMore(true)
+    fetchRepos(1, true)
   }
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters)
     setPage(1)
+    setHasMore(true)
   }
 
   return (
@@ -96,18 +123,21 @@ export default function App() {
       {/* Hero Section */}
       <section className="pt-24 pb-12 px-4 bg-gradient-to-br from-primary/5 to-secondary/5">
         <div className="container max-w-4xl mx-auto text-center">
-          <div className="flex items-center justify-center mb-6">
-            <Github className="h-12 w-12 mr-3 text-primary" />
+          <div className="flex items-center justify-center mb-6 fade-in-up">
+            <div className="relative">
+              <Code2 className="h-12 w-12 mr-3 text-primary" />
+              <Sparkles className="absolute -top-1 -right-1 h-4 w-4 text-secondary" />
+            </div>
             <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              RepoHub
+              OpenContri
             </h1>
           </div>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Discover amazing repositories, share your favorites, and connect with the developer community.
+          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto fade-in-up stagger-1">
+            Discover amazing open source projects, contribute to the community, and build the future together.
           </p>
           
           {/* Search Bar */}
-          <form onSubmit={handleSearch} className="flex gap-2 max-w-lg mx-auto mb-6">
+          <form onSubmit={handleSearch} className="flex gap-2 max-w-lg mx-auto mb-6 fade-in-up stagger-2">
             <Input
               type="text"
               placeholder="Search repositories..."
@@ -134,45 +164,79 @@ export default function App() {
         <div className="flex gap-8">
           {/* Filters Sidebar */}
           {showFilters && (
-            <div className="w-80 shrink-0">
+            <div className="w-80 shrink-0 fade-in-up">
               <FilterSidebar filters={filters} onFiltersChange={handleFilterChange} />
             </div>
           )}
           
           {/* Main Content */}
           <div className="flex-1">
-            {/* Repository Grid */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {repos.map((repo) => (
-                <RepoCard key={repo.id} repo={repo} />
-              ))}
-            </div>
-            
-            {/* Load More Button */}
-            {repos.length > 0 && (
-              <div className="text-center mt-12">
-                <Button
-                  onClick={() => fetchRepos()}
-                  disabled={loading}
-                  size="lg"
-                  className="px-8"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    'Load More Repositories'
-                  )}
-                </Button>
+            {/* Initial Loading State */}
+            {initialLoading && (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin mr-2" />
+                <span>Discovering amazing repositories...</span>
               </div>
             )}
             
-            {loading && repos.length === 0 && (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin mr-2" />
-                <span>Loading repositories...</span>
+            {/* Repository Grid */}
+            {!initialLoading && (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {repos.map((repo, index) => {
+                  const isLast = index === repos.length - 1
+                  return (
+                    <div 
+                      key={repo.id}
+                      ref={isLast ? lastRepoElementRef : null}
+                      className="fade-in-up"
+                      style={{ animationDelay: `${(index % 12) * 0.1}s` }}
+                    >
+                      <RepoCard repo={repo} />
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            
+            {/* Infinite Scroll Loading Indicator */}
+            {loading && !initialLoading && repos.length > 0 && (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                <span className="text-sm text-muted-foreground">Loading more repositories...</span>
+              </div>
+            )}
+            
+            {/* End of Results */}
+            {!hasMore && repos.length > 0 && (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">
+                  🎉 You've discovered all the amazing repositories! Try adjusting your search or filters for more results.
+                </p>
+              </div>
+            )}
+            
+            {/* No Results */}
+            {!initialLoading && repos.length === 0 && !loading && (
+              <div className="text-center py-12">
+                <Code2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No repositories found</h3>
+                <p className="text-muted-foreground mb-4">
+                  Try adjusting your search terms or filters
+                </p>
+                <Button 
+                  onClick={() => {
+                    setSearchTerm('')
+                    setFilters({
+                      language: '',
+                      minStars: 0,
+                      maxStars: 100000,
+                      topics: []
+                    })
+                  }}
+                  variant="outline"
+                >
+                  Reset Search
+                </Button>
               </div>
             )}
           </div>

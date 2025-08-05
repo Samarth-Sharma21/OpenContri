@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useUser, SignInButton, UserButton } from '@clerk/nextjs'
+import { useUser, SignInButton, SignUpButton, UserButton } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Github, Menu, Plus, Users, Home } from 'lucide-react'
+import { Github, Menu, Plus, Users, Home, Code2 } from 'lucide-react'
 
 export default function Navigation() {
   const pathname = usePathname()
@@ -53,8 +53,13 @@ export default function Navigation() {
       <div className="container flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-          <Github className="h-6 w-6 text-primary" />
-          <span>RepoHub</span>
+          <div className="relative">
+            <Code2 className="h-6 w-6 text-primary" />
+            <div className="absolute -top-1 -right-1 w-2 h-2 bg-secondary rounded-full"></div>
+          </div>
+          <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            OpenContri
+          </span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -73,9 +78,14 @@ export default function Navigation() {
               }}
             />
           ) : (
-            <SignInButton>
-              <Button size="sm">Sign In</Button>
-            </SignInButton>
+            <div className="flex items-center gap-2">
+              <SignInButton>
+                <Button variant="ghost" size="sm">Sign In</Button>
+              </SignInButton>
+              <SignUpButton>
+                <Button size="sm">Sign Up</Button>
+              </SignUpButton>
+            </div>
           )}
 
           {/* Mobile Menu */}
@@ -88,6 +98,24 @@ export default function Navigation() {
             <SheetContent side="right" className="w-[300px] sm:w-[400px]">
               <div className="flex flex-col gap-4 mt-8">
                 <NavLinks mobile onItemClick={() => setIsOpen(false)} />
+                
+                {/* Mobile Auth Buttons */}
+                {!isSignedIn && (
+                  <div className="pt-4 border-t">
+                    <div className="space-y-2">
+                      <SignInButton>
+                        <Button variant="outline" className="w-full" onClick={() => setIsOpen(false)}>
+                          Sign In
+                        </Button>
+                      </SignInButton>
+                      <SignUpButton>
+                        <Button className="w-full" onClick={() => setIsOpen(false)}>
+                          Sign Up
+                        </Button>
+                      </SignUpButton>
+                    </div>
+                  </div>
+                )}
               </div>
             </SheetContent>
           </Sheet>

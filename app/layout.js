@@ -6,8 +6,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
-  title: 'RepoHub - Modern SaaS Repository Discovery',
-  description: 'Discover, submit, and discuss amazing repositories with the community',
+  title: 'OpenContri - Discover Amazing Open Source Projects',
+  description: 'Discover, contribute to, and discuss amazing open source repositories with the community',
 }
 
 export default function RootLayout({ children }) {
