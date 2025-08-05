@@ -51,14 +51,14 @@ export default function App() {
     
     if (searchTerm) {
       // Check if it's an author search (detect common patterns)
-      const authorPattern = /^@?([a-zA-Z0-9-]+)$/.exec(searchTerm.trim())
+      const authorPattern = /^@([a-zA-Z0-9-]+)$/.exec(searchTerm.trim())
       const userPattern = /^user:([a-zA-Z0-9-]+)$/i.exec(searchTerm.trim())
       const orgPattern = /^org:([a-zA-Z0-9-]+)$/i.exec(searchTerm.trim())
       
-      if (authorPattern && !searchTerm.includes(' ')) {
-        // Simple username search - search both in name and owner
+      if (authorPattern) {
+        // Convert @username to user:username for GitHub API
         const username = authorPattern[1]
-        query.push(`(${searchTerm} OR user:${username} OR org:${username})`)
+        query.push(`user:${username}`)
       } else if (userPattern) {
         query.push(`user:${userPattern[1]}`)
       } else if (orgPattern) {
