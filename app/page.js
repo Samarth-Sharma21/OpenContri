@@ -214,14 +214,19 @@ export default function App() {
           
           {/* Search Bar */}
           <form onSubmit={handleSearch} className="flex gap-2 max-w-lg mx-auto mb-6 fade-in-up stagger-2">
-            <Input
-              type="text"
-              placeholder="Search repositories..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1"
-            />
-            <Button type="submit" size="icon">
+            <div className="flex-1">
+              <Input
+                type="text"
+                placeholder="Search repos or @username..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1"
+              />
+              <p className="text-xs text-muted-foreground mt-1 text-left">
+                Try: "react", "@facebook", "user:microsoft", "machine-learning"
+              </p>
+            </div>
+            <Button type="submit" size="icon" className="shrink-0">
               <Search className="h-4 w-4" />
             </Button>
             <Button 
@@ -229,6 +234,7 @@ export default function App() {
               variant="outline" 
               size="icon"
               onClick={() => setShowFilters(!showFilters)}
+              className="shrink-0"
             >
               <Filter className="h-4 w-4" />
             </Button>
