@@ -55,9 +55,9 @@ class RepoHubBackendTester:
         })
 
     def test_api_root(self):
-        """Test GET /api/ - API root endpoint"""
+        """Test GET /api - API root endpoint"""
         try:
-            response = self.session.get(f"{self.api_url}/")
+            response = self.session.get(f"{self.api_url}")
             
             if response.status_code == 200:
                 data = response.json()
