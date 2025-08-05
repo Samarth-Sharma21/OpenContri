@@ -31,7 +31,8 @@ class RepoHubBackendTester:
         if not self.env:
             sys.exit(1)
         
-        self.base_url = self.env.get('NEXT_PUBLIC_BASE_URL', '').rstrip('/')
+        # Use localhost for testing since external URL has routing issues
+        self.base_url = "http://localhost:3000"
         self.api_url = f"{self.base_url}/api"
         self.session = requests.Session()
         self.test_results = []
