@@ -291,9 +291,25 @@ export default function App() {
             {/* End of Results */}
             {!hasMore && repos.length > 0 && (
               <div className="text-center py-8">
-                <p className="text-muted-foreground">
-                  🎉 You've discovered all the amazing repositories! Try adjusting your search or filters for more results.
+                <p className="text-muted-foreground mb-4">
+                  🎯 Found {repos.length} amazing repositories! Try different search terms or filters to explore more.
                 </p>
+                <Button 
+                  onClick={() => {
+                    setSearchTerm('')
+                    setFilters({
+                      language: '',
+                      minStars: 0,
+                      maxStars: 100000,
+                      topics: []
+                    })
+                    setPage(1)
+                    setHasMore(true)
+                  }}
+                  variant="outline"
+                >
+                  Explore Different Projects
+                </Button>
               </div>
             )}
             
