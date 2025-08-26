@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useUser } from '@clerk/nextjs'
+import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 import Navigation from '@/components/Navigation'
 import RepoCard from '@/components/RepoCard'
@@ -12,7 +12,7 @@ import { Loader2, Search, Code2, Filter, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function App() {
-  const { user } = useUser()
+  const { user, profile } = useAuth()
   const [repos, setRepos] = useState([])
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)

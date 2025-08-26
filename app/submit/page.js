@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useUser } from '@clerk/nextjs'
+import { useAuth } from '@/contexts/AuthContext'
 import Navigation from '@/components/Navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -16,7 +16,7 @@ import { toast } from 'sonner'
 
 export default function SubmitPage() {
   const router = useRouter()
-  const { user, isSignedIn } = useUser()
+  const { user, profile, isSignedIn, signInWithGitHub } = useAuth()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     url: '',
@@ -43,12 +43,13 @@ export default function SubmitPage() {
                 Please sign in to contribute amazing repositories to the OpenContri community.
               </p>
               <div className="space-y-2">
-                <Button asChild className="w-full">
-                  <a href="/sign-in">Sign In</a>
-                </Button>
-                <Button asChild variant="outline" className="w-full">
-                  <a href="/sign-up">Create Account</a>
-                </Button>
+                <Button 
+                className="w-full flex items-center gap-2"
+                onClick={signInWithGitHub}
+              >
+                <Github className="h-4 w-4" />
+                Sign In with GitHub
+              </Button>
               </div>
             </CardContent>
           </Card>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useUser } from '@clerk/nextjs'
+import { useAuth } from '@/contexts/AuthContext'
 import Navigation from '@/components/Navigation'
 import CommunityRepoCard from '@/components/CommunityRepoCard'
 import { Input } from '@/components/ui/input'
@@ -12,7 +12,7 @@ import { Loader2, Search, Users, Filter, X, Code2, Sparkles } from 'lucide-react
 import { toast } from 'sonner'
 
 export default function CommunityPage() {
-  const { user } = useUser()
+  const { user, profile } = useAuth()
   const [submissions, setSubmissions] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')

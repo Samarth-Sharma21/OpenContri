@@ -3,14 +3,15 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useUser, SignInButton, SignUpButton, UserButton } from '@clerk/nextjs'
+import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Github, Menu, Plus, Users, Home, Code2 } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Github, Menu, Plus, Users, Home, Code2, LogOut } from 'lucide-react'
 
 export default function Navigation() {
   const pathname = usePathname()
-  const { isSignedIn, user } = useUser()
+  const { user, profile, isSignedIn, signInWithGitHub, signOut } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
 
   const navItems = [
@@ -70,21 +71,41 @@ export default function Navigation() {
         {/* Auth Section */}
         <div className="flex items-center gap-3">
           {isSignedIn ? (
-            <UserButton 
-              appearance={{
-                elements: {
-                  avatarBox: "h-8 w-8"
-                }
-              }}
-            />
+            <div className="flex items-center gap-2">
+              <Avatar className="h-8 w-8 border">
+                {profile?.avatar_url ? (
+                  <AvatarImage src={profile.avatar_url} alt={profile?.username || 'User'} />
+                ) : (
+                  <AvatarFallback>
+                    {profile?.username?.charAt(0).toUpperCase() || 
+                     user?.user_metadata?.preferred_username?.charAt(0).toUpperCase() || 
+                     user?.email?.charAt(0).toUpperCase() || 'U'}
+                  </AvatarFallback>
+                )}
+              </Avatar>
+              <div className="hidden md:block mr-2">
+                <p className="text-sm font-medium">{profile?.username || user?.user_metadata?.preferred_username || 'User'}</p>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={signOut}
+                title="Sign Out"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           ) : (
             <div className="flex items-center gap-2">
-              <SignInButton>
-                <Button variant="ghost" size="sm">Sign In</Button>
-              </SignInButton>
-              <SignUpButton>
-                <Button size="sm">Sign Up</Button>
-              </SignUpButton>
+              <Button 
+                variant="default" 
+                size="sm"
+                onClick={signInWithGitHub}
+                className="flex items-center gap-2"
+              >
+                <Github className="h-4 w-4" />
+                Sign In with GitHub
+              </Button>
             </div>
           )}
 
@@ -103,16 +124,17 @@ export default function Navigation() {
                 {!isSignedIn && (
                   <div className="pt-4 border-t">
                     <div className="space-y-2">
-                      <SignInButton>
-                        <Button variant="outline" className="w-full" onClick={() => setIsOpen(false)}>
-                          Sign In
-                        </Button>
-                      </SignInButton>
-                      <SignUpButton>
-                        <Button className="w-full" onClick={() => setIsOpen(false)}>
-                          Sign Up
-                        </Button>
-                      </SignUpButton>
+                      <Button 
+                        variant="default" 
+                        className="w-full flex items-center gap-2" 
+                        onClick={() => {
+                          signInWithGitHub();
+                          setIsOpen(false);
+                        }}
+                      >
+                        <Github className="h-4 w-4" />
+                        Sign In with GitHub
+                      </Button>
                     </div>
                   </div>
                 )}

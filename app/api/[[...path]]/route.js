@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-import { auth } from '@clerk/nextjs/server'
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 
 // Helper function to handle CORS
 function handleCORS(response) {
@@ -44,10 +45,15 @@ async function handleRoute(request, { params }) {
     }
 
     if (route === '/submissions' && method === 'POST') {
-      const { userId } = auth()
-      if (!userId) {
+      // Create a Supabase client with the cookies
+      const supabaseAuth = createServerComponentClient({ cookies })
+      const { data: { session } } = await supabaseAuth.auth.getSession()
+      
+      if (!session?.user?.id) {
         return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
       }
+      
+      const userId = session.user.id
 
       const body = await request.json()
       const { url, title, description, tags, platform, username, language, stars } = body
@@ -94,10 +100,15 @@ async function handleRoute(request, { params }) {
     }
 
     if (route === '/comments' && method === 'POST') {
-      const { userId } = auth()
-      if (!userId) {
+      // Create a Supabase client with the cookies
+      const supabaseAuth = createServerComponentClient({ cookies })
+      const { data: { session } } = await supabaseAuth.auth.getSession()
+      
+      if (!session?.user?.id) {
         return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
       }
+      
+      const userId = session.user.id
 
       const body = await request.json()
       const { repoId, repoUrl, text, username } = body
@@ -133,10 +144,15 @@ async function handleRoute(request, { params }) {
 
     // Update comment
     if (route.startsWith('/comments/') && method === 'PUT') {
-      const { userId } = auth()
-      if (!userId) {
+      // Create a Supabase client with the cookies
+      const supabaseAuth = createServerComponentClient({ cookies })
+      const { data: { session } } = await supabaseAuth.auth.getSession()
+      
+      if (!session?.user?.id) {
         return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
       }
+      
+      const userId = session.user.id
 
       const commentId = route.split('/')[2]
       const body = await request.json()
@@ -159,10 +175,15 @@ async function handleRoute(request, { params }) {
 
     // Delete comment
     if (route.startsWith('/comments/') && method === 'DELETE') {
-      const { userId } = auth()
-      if (!userId) {
+      // Create a Supabase client with the cookies
+      const supabaseAuth = createServerComponentClient({ cookies })
+      const { data: { session } } = await supabaseAuth.auth.getSession()
+      
+      if (!session?.user?.id) {
         return handleCORS(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }))
       }
+      
+      const userId = session.user.id
 
       const commentId = route.split('/')[2]
 
